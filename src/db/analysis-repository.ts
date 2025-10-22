@@ -56,7 +56,7 @@ export class AnalysisRepository {
          FROM analyses
          WHERE id = ?`,
         )
-        .get<[string, string, string, string, string]>(id);
+        .get(id) as [string, string, string, string, string] | undefined;
 
       if (!row) {
         return null;
