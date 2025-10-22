@@ -1,8 +1,8 @@
 {
   "tasks": {
-    "dev": "deno run --allow-net --allow-read --allow-write --allow-env --watch src/main.ts",
-    "start": "deno run --allow-net --allow-read --allow-write --allow-env src/main.ts",
-    "test": "deno test --allow-net --allow-read --allow-write --allow-env",
+    "dev": "deno run --allow-net --allow-read --allow-write --allow-env --allow-ffi --watch src/main.ts",
+    "start": "deno run --allow-net --allow-read --allow-write --allow-env --allow-ffi src/main.ts",
+    "test": "deno test --allow-net --allow-read --allow-write --allow-env --allow-ffi",
     "check": "deno check src/**/*.ts"
   },
   "compilerOptions": {
@@ -12,6 +12,6 @@
   "imports": {
     "@anthropic-ai/sdk": "npm:@anthropic-ai/sdk@^0.20.0",
     "oak": "https://deno.land/x/oak@v12.6.1/mod.ts",
-    "sqlite": "https://deno.land/x/sqlite@v3.8/mod.ts"
+    "sqlite": "jsr:@db/sqlite@0.11"
   }
 }

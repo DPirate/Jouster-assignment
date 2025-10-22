@@ -1,4 +1,4 @@
-import { DB } from "sqlite";
+import { Database } from "sqlite";
 import { Analysis } from "../models/analysis-result.ts";
 import { Metadata } from "../models/metadata.ts";
 import { logger } from "../utils/logger.ts";
@@ -7,7 +7,7 @@ import { logger } from "../utils/logger.ts";
  * Repository for Analysis CRUD operations
  */
 export class AnalysisRepository {
-  constructor(private db: DB) {}
+  constructor(private db: Database) {}
 
   /**
    * Generate a unique UUID v4 identifier
@@ -23,17 +23,18 @@ export class AnalysisRepository {
     try {
       const metadataJson = JSON.stringify(analysis.metadata);
 
-      this.db.query(
-        `INSERT INTO analyses (id, text, summary, metadata, created_at)
+      this.db
+        .prepare(
+          `INSERT INTO analyses (id, text, summary, metadata, created_at)
          VALUES (?, ?, ?, ?, ?)`,
-        [
+        )
+        .run(
           analysis.id,
           analysis.text,
           analysis.summary,
           metadataJson,
           analysis.createdAt,
-        ]
-      );
+        );
 
       logger.info("Analysis saved", { id: analysis.id });
     } catch (error) {
@@ -49,20 +50,19 @@ export class AnalysisRepository {
    */
   findById(id: string): Analysis | null {
     try {
-      const rows = this.db.query<
-        [string, string, string, string, string]
-      >(
-        `SELECT id, text, summary, metadata, created_at
+      const row = this.db
+        .prepare(
+          `SELECT id, text, summary, metadata, created_at
          FROM analyses
          WHERE id = ?`,
-        [id]
-      );
+        )
+        .get<[string, string, string, string, string]>(id);
 
-      if (rows.length === 0) {
+      if (!row) {
         return null;
       }
 
-      const [rowId, text, summary, metadataJson, createdAt] = rows[0];
+      const [rowId, text, summary, metadataJson, createdAt] = row;
       const metadata: Metadata = JSON.parse(metadataJson);
 
       return {

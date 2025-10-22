@@ -1,3 +1,5 @@
+import "jsr:@std/dotenv/load";
+
 /**
  * Application configuration loaded from environment variables
  */
@@ -20,7 +22,7 @@ export function loadConfig(): Config {
   if (!anthropicApiKey) {
     throw new Error(
       "ANTHROPIC_API_KEY environment variable is required. " +
-      "Please set it in .env file or environment."
+        "Please set it in .env file or environment.",
     );
   }
 
@@ -29,7 +31,7 @@ export function loadConfig(): Config {
     port: parseInt(Deno.env.get("PORT") || "8000", 10),
     maxConcurrentRequests: parseInt(
       Deno.env.get("MAX_CONCURRENT_REQUESTS") || "10",
-      10
+      10,
     ),
     maxQueueSize: parseInt(Deno.env.get("MAX_QUEUE_SIZE") || "100", 10),
     llmTimeoutMs: parseInt(Deno.env.get("LLM_TIMEOUT_MS") || "30000", 10),

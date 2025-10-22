@@ -1,16 +1,16 @@
-import { DB } from "sqlite";
+import { Database } from "sqlite";
 import { logger } from "../utils/logger.ts";
 
 /**
  * Initialize SQLite database with schema
  */
-export function initializeDatabase(path: string): DB {
+export function initializeDatabase(path: string): Database {
   logger.info("Initializing database", { path });
 
-  const db = new DB(path);
+  const db = new Database(path);
 
   // Create analyses table
-  db.execute(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS analyses (
       id TEXT PRIMARY KEY,
       text TEXT NOT NULL CHECK(length(text) > 0 AND length(text) <= 50000),
@@ -21,7 +21,7 @@ export function initializeDatabase(path: string): DB {
   `);
 
   // Create index for chronological queries
-  db.execute(`
+  db.exec(`
     CREATE INDEX IF NOT EXISTS idx_created_at ON analyses(created_at DESC);
   `);
 
