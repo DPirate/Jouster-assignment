@@ -5,9 +5,11 @@ import { initializeDatabase } from "./db/database.ts";
 import { AnalysisRepository } from "./db/analysis-repository.ts";
 import { ClaudeLLMProvider } from "./services/llm-service.ts";
 import { AnalysisService } from "./services/analysis-service.ts";
+import { SearchService } from "./services/search-service.ts";
 import { RequestQueue } from "./middleware/request-queue.ts";
 import { errorHandler } from "./middleware/error-handler.ts";
 import { handleAnalyze } from "./routes/analyze.ts";
+import { handleSearch } from "./routes/search.ts";
 
 /**
  * Main application entry point
@@ -28,19 +30,22 @@ async function main() {
   // Initialize LLM provider
   const llmProvider = new ClaudeLLMProvider(
     config.anthropicApiKey,
-    config.llmTimeoutMs
+    config.llmTimeoutMs,
   );
 
   // Initialize analysis service
   const analysisService = new AnalysisService(
     llmProvider,
-    () => repository.generateId()
+    () => repository.generateId(),
   );
+
+  // Initialize search service
+  const searchService = new SearchService(repository);
 
   // Initialize request queue
   const queue = new RequestQueue(
     config.maxConcurrentRequests,
-    config.maxQueueSize
+    config.maxQueueSize,
   );
 
   // Create Oak application
@@ -53,8 +58,14 @@ async function main() {
   const router = new Router();
 
   // Register routes
-  router.post("/analyze", (ctx) =>
-    handleAnalyze(ctx, analysisService, repository, queue)
+  router.post(
+    "/analyze",
+    (ctx) => handleAnalyze(ctx, analysisService, repository, queue),
+  );
+
+  router.get(
+    "/search",
+    (ctx) => handleSearch(ctx, searchService),
   );
 
   // Register router
@@ -66,6 +77,7 @@ async function main() {
 
   console.log(`\n🚀 Server running on http://localhost:${config.port}`);
   console.log(`📊 POST http://localhost:${config.port}/analyze`);
+  console.log(`🔍 GET  http://localhost:${config.port}/search?topic=<term>`);
   console.log(`\n⚙️  Configuration:`);
   console.log(`   - Max concurrent requests: ${config.maxConcurrentRequests}`);
   console.log(`   - Max queue size: ${config.maxQueueSize}`);

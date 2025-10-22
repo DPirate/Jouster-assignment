@@ -78,34 +78,46 @@ curl -X POST http://localhost:8000/analyze \
 ```
 
 ### GET /search
-Search stored analyses by topic or keyword.
+Search stored analyses by topic with case-insensitive substring matching.
 
-**Request:**
+**Parameters:**
+- `topic` (required): Search term to match against topics array (case-insensitive)
+- `limit` (optional): Maximum number of results to return (positive integer)
+
+**Request Examples:**
 ```bash
 # Search by topic
 curl "http://localhost:8000/search?topic=technology"
 
-# Search by keyword
-curl "http://localhost:8000/search?keyword=innovation"
+# Search with limit
+curl "http://localhost:8000/search?topic=technology&limit=5"
 
-# Search by both
-curl "http://localhost:8000/search?topic=technology&keyword=innovation"
+# Case-insensitive search (matches "Technology", "TECHNOLOGY", "technology")
+curl "http://localhost:8000/search?topic=tech"
 ```
 
 **Response:**
 ```json
-{
-  "results": [
-    {
-      "id": "uuid",
-      "summary": "...",
-      "metadata": {...},
-      "createdAt": "..."
-    }
-  ],
-  "count": 1
-}
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "text": "Original text content...",
+    "summary": "1-2 sentence summary of the text",
+    "metadata": {
+      "title": "Extracted Title",
+      "topics": ["technology", "innovation"],
+      "sentiment": "positive",
+      "keywords": ["keyword1", "keyword2"]
+    },
+    "createdAt": "2025-10-23T10:30:00.000Z"
+  }
+]
 ```
+
+**Notes:**
+- Returns analyses ordered by creation time (newest first)
+- Empty array `[]` returned when no matches found
+- Substring matching: searching "tech" matches "technology", "fintech", etc.
 
 ## Testing
 

@@ -77,4 +77,70 @@ export class AnalysisRepository {
       return null;
     }
   }
+
+  /**
+   * Search analyses by topic with case-insensitive substring matching
+   * @param topic Search term to match against topics array (case-insensitive)
+   * @param limit Optional maximum number of results to return
+   * @returns Array of Analysis objects ordered by created_at DESC (newest first)
+   */
+  searchByTopic(topic: string, limit?: number): Analysis[] {
+    const startTime = Date.now();
+    try {
+      // Lowercase the search term for case-insensitive matching
+      const pattern = `%${topic.toLowerCase()}%`;
+
+      // Build query with optional LIMIT
+      const sql = limit
+        ? `SELECT id, text, summary, metadata, created_at
+           FROM analyses
+           WHERE topics_searchable LIKE ?
+           ORDER BY created_at DESC
+           LIMIT ?`
+        : `SELECT id, text, summary, metadata, created_at
+           FROM analyses
+           WHERE topics_searchable LIKE ?
+           ORDER BY created_at DESC`;
+
+      // Execute query
+      const stmt = this.db.prepare(sql);
+      const rows = limit ? stmt.all(pattern, limit) : stmt.all(pattern);
+
+      // Map rows to Analysis objects
+      // Note: .all() returns array of objects {columnName: value}
+      const results = (rows as Array<{
+        id: string;
+        text: string;
+        summary: string;
+        metadata: string;
+        created_at: string;
+      }>).map((row) => {
+        const metadata: Metadata = JSON.parse(row.metadata);
+        return {
+          id: row.id,
+          text: row.text,
+          summary: row.summary,
+          metadata,
+          createdAt: row.created_at,
+        };
+      });
+
+      // Log successful query execution (FR-013)
+      const executionTime = Date.now() - startTime;
+      logger.info("Topic search query executed", {
+        topic,
+        limit,
+        resultCount: results.length,
+        executionTimeMs: executionTime,
+      });
+
+      return results;
+    } catch (error) {
+      logger.error("Failed to search analyses by topic", error as Error, {
+        topic,
+        limit,
+      });
+      throw new Error("Failed to execute search query");
+    }
+  }
 }
