@@ -1,0 +1,31 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-net --allow-read --allow-write --allow-env --watch src/main.ts",
+    "start": "deno run --allow-net --allow-read --allow-write --allow-env src/main.ts",
+    "test": "deno test --allow-net --allow-read --allow-write --allow-env tests/",
+    "check": "deno check src/main.ts"
+  },
+  "imports": {
+    "@oak/oak": "jsr:@oak/oak@^17.1.3",
+    "@db/sqlite": "jsr:@db/sqlite@^0.12.0",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.0"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": false,
+    "proseWrap": "preserve"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  }
+}
