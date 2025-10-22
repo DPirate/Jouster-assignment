@@ -1,0 +1,251 @@
+openapi: 3.0.3
+info:
+  title: LLM Knowledge Extractor API
+  description: |
+    REST API for analyzing unstructured text using LLM to generate summaries and extract structured metadata.
+
+    This API provides a single endpoint for text analysis that returns:
+    - 1-2 sentence summary
+    - Extracted title (if available)
+    - 3 key topics
+    - Sentiment classification (positive/neutral/negative)
+    - 3 most frequent keywords (nouns)
+  version: 1.0.0
+  contact:
+    name: API Support
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+paths:
+  /analyze:
+    post:
+      summary: Analyze text
+      description: |
+        Analyzes unstructured text and returns a summary with extracted metadata.
+
+        **Behavior:**
+        - Texts with 20+ words: LLM generates summary
+        - Texts with <20 words: Returns original text as summary
+        - Keyword extraction: Identifies up to 3 most frequent nouns (not LLM-generated)
+        - Results are persisted with unique ID for future retrieval
+
+        **Limits:**
+        - Max text length: 50,000 characters
+        - LLM timeout: 30 seconds
+        - Concurrent requests: 10 (configurable)
+        - Queue capacity: 100 (configurable)
+      operationId: analyzeText
+      tags:
+        - Analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalysisRequest'
+            examples:
+              blog_post:
+                summary: Blog post about technology
+                value:
+                  text: "Artificial intelligence is transforming how we interact with technology. Machine learning algorithms can now understand natural language, recognize images, and make predictions with remarkable accuracy. These advances are enabling new applications across healthcare, finance, and education."
+              short_text:
+                summary: Short text (returned as-is)
+                value:
+                  text: "Hello world example"
+              product_review:
+                summary: Product review with sentiment
+                value:
+                  text: "This product exceeded my expectations! The quality is outstanding and it arrived quickly. Highly recommend to anyone looking for a reliable solution."
+      responses:
+        '200':
+          description: Analysis completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResponse'
+              examples:
+                success:
+                  summary: Successful analysis
+                  value:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    text: "Artificial intelligence is transforming how we interact with technology. Machine learning algorithms can now understand natural language, recognize images, and make predictions with remarkable accuracy."
+                    summary: "AI and machine learning are revolutionizing technology interaction through natural language understanding, image recognition, and predictive capabilities."
+                    metadata:
+                      title: "The Impact of Artificial Intelligence"
+                      topics: ["artificial intelligence", "machine learning", "technology"]
+                      sentiment: "positive"
+                      keywords: ["intelligence", "algorithms", "technology"]
+                    createdAt: "2025-10-22T14:30:00.000Z"
+        '400':
+          description: Invalid request (empty, null, or malformed input)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                empty_text:
+                  summary: Empty text field
+                  value:
+                    error: "Text input is required and cannot be empty"
+                malformed_json:
+                  summary: Invalid JSON format
+                  value:
+                    error: "Invalid request format"
+        '413':
+          description: Text exceeds maximum length
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                too_large:
+                  summary: Text too long
+                  value:
+                    error: "Text exceeds maximum length of 50,000 characters"
+                    details:
+                      provided: 60000
+                      maximum: 50000
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                processing_error:
+                  summary: Analysis processing failed
+                  value:
+                    error: "Failed to process text analysis"
+                    details:
+                      requestId: "req-123456"
+                storage_error:
+                  summary: Database persistence failed
+                  value:
+                    error: "Failed to store analysis"
+        '503':
+          description: Service unavailable (LLM service down or server at capacity)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                llm_unavailable:
+                  summary: LLM service down
+                  value:
+                    error: "LLM service temporarily unavailable, please try again later"
+                queue_full:
+                  summary: Server at capacity
+                  value:
+                    error: "Server at capacity, please try again later"
+                    details:
+                      queueSize: 100
+                      concurrent: 10
+        '504':
+          description: Gateway timeout (LLM request exceeded timeout)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                timeout:
+                  summary: LLM request timed out
+                  value:
+                    error: "Analysis request timed out, please try again"
+components:
+  schemas:
+    AnalysisRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 50000
+          description: The unstructured text to analyze
+          example: "Your text to analyze here..."
+
+    AnalysisResponse:
+      type: object
+      required:
+        - id
+        - text
+        - summary
+        - metadata
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for this analysis (UUID v4)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        text:
+          type: string
+          description: The original input text
+          example: "Artificial intelligence is transforming technology..."
+        summary:
+          type: string
+          description: 1-2 sentence summary of the text
+          example: "AI is revolutionizing technology through machine learning and natural language processing."
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when analysis was created
+          example: "2025-10-22T14:30:00.000Z"
+
+    Metadata:
+      type: object
+      required:
+        - title
+        - topics
+        - sentiment
+        - keywords
+      properties:
+        title:
+          type: string
+          nullable: true
+          description: Extracted title from the text (null if none found)
+          example: "The Future of Artificial Intelligence"
+        topics:
+          type: array
+          items:
+            type: string
+          minItems: 3
+          maxItems: 3
+          description: Three key topics identified in the text
+          example: ["artificial intelligence", "machine learning", "technology"]
+        sentiment:
+          type: string
+          enum: [positive, neutral, negative]
+          description: Overall sentiment of the text
+          example: "positive"
+        keywords:
+          type: array
+          items:
+            type: string
+          minItems: 0
+          maxItems: 3
+          description: Up to 3 most frequent nouns (custom extraction, not LLM-generated)
+          example: ["intelligence", "technology", "systems"]
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: User-friendly error message
+          example: "Text input is required and cannot be empty"
+        details:
+          type: object
+          additionalProperties: true
+          description: Optional additional error context
+          example:
+            provided: 60000
+            maximum: 50000
+tags:
+  - name: Analysis
+    description: Text analysis operations
