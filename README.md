@@ -121,26 +121,87 @@ deno task check
 
 ## Design Choices
 
-(To be filled during implementation)
+**1. TypeScript with Deno Runtime**
+- Native TypeScript support without build step
+- Built-in test runner and standard library
+- Modern permissions model for security
+- Quick prototyping suitable for 90-120 minute timebox
+
+**2. Layered Architecture**
+- **Routes**: HTTP handlers (Oak framework)
+- **Services**: Business logic (LLM, keyword extraction, analysis orchestration)
+- **Database**: SQLite with repository pattern
+- **Middleware**: Error handling, validation, request queuing
+
+**3. LLM Provider Abstraction**
+- Interface-based design enables future multi-provider support
+- Currently implements Claude via @anthropic-ai/sdk
+- Clean separation between business logic and LLM specifics
+
+**4. Custom Keyword Extraction**
+- Basic noun identification using heuristics (proper nouns, common endings)
+- Stopword filtering and frequency counting
+- Returns 0-3 keywords based on availability (graceful degradation)
+- Note: Production system would use proper NLP library (compromise, natural)
+
+**5. Request Queue with Semaphore Pattern**
+- Limits concurrent LLM requests (default: 10) to avoid rate limits
+- Queue overflow handling (default: 100 max queued)
+- Returns 503 when at capacity for clear client feedback
 
 ## Trade-offs
 
-(To be documented based on implementation decisions)
+**Time vs Features (90-120 minute timebox)**
+- ✅ Implemented: Core analysis, error handling, persistence, concurrency
+- ⚠️ Simplified: Keyword extraction uses heuristics instead of proper POS tagging
+- ⏭️ Deferred: Tests (bonus), GET /search endpoint, batch processing, Docker
+
+**Simplicity vs Robustness**
+- Simple noun detection (heuristics) rather than full NLP pipeline
+- Basic error handling covers main failure modes (LLM timeout, API failure, validation)
+- SQLite for simplicity (suitable for prototype; production might need PostgreSQL)
+
+**Performance vs Accuracy**
+- Parallel LLM calls (summary + metadata) for speed
+- Short text optimization (<20 words) skips LLM for instant response
+- Queue limits prevent server overload at cost of rejected requests
+
+**Dependencies vs Control**
+- Used Oak framework for routing (faster than building from scratch)
+- Basic keyword extraction (no NLP library) for Deno compatibility
+- Minimal dependencies keep prototype simple and maintainable
 
 ## Project Structure
 
 ```
 ├── src/
-│   ├── main.ts                 # Application entry point
-│   ├── routes/                 # API route handlers
-│   ├── services/               # Business logic
-│   ├── llm/                    # LLM provider abstractions
-│   ├── db/                     # Database layer
-│   └── types/                  # TypeScript type definitions
-├── tests/                      # Test files
-├── data/                       # SQLite database (gitignored)
-├── deno.json                   # Deno configuration
-└── README.md                   # This file
+│   ├── main.ts                      # Application entry point
+│   ├── routes/
+│   │   └── analyze.ts               # POST /analyze handler
+│   ├── services/
+│   │   ├── analysis-service.ts      # Analysis orchestration
+│   │   ├── llm-service.ts           # LLM provider (Claude)
+│   │   └── keyword-service.ts       # Custom keyword extraction
+│   ├── db/
+│   │   ├── database.ts              # SQLite initialization
+│   │   └── analysis-repository.ts   # CRUD operations
+│   ├── models/
+│   │   ├── analysis-request.ts      # Request types
+│   │   ├── analysis-result.ts       # Response types
+│   │   ├── metadata.ts              # Metadata types
+│   │   └── error-response.ts        # Error types
+│   ├── middleware/
+│   │   ├── error-handler.ts         # Global error handling
+│   │   ├── validator.ts             # Request validation
+│   │   └── request-queue.ts         # Concurrency control
+│   └── utils/
+│       ├── config.ts                # Configuration loader
+│       └── logger.ts                # Structured logging
+├── tests/                           # Test files (deferred)
+├── data/                            # SQLite database (gitignored)
+├── specs/                           # Feature specifications
+├── deno.json                        # Deno configuration
+└── README.md                        # This file
 ```
 
 ## License
