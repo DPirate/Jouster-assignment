@@ -1,14 +1,58 @@
 import { logger } from "../utils/logger.ts";
 
+// TODO: check if there is a well established library for extracting english keywords
+
 /**
  * Common English stopwords to filter out
  */
 const STOPWORDS = new Set([
-  "a", "an", "and", "are", "as", "at", "be", "by", "for", "from",
-  "has", "he", "in", "is", "it", "its", "of", "on", "that", "the",
-  "to", "was", "will", "with", "this", "but", "they", "have", "had",
-  "what", "when", "where", "who", "which", "why", "how", "all", "each",
-  "every", "both", "few", "more", "most", "other", "some", "such", "or",
+  "a",
+  "an",
+  "and",
+  "are",
+  "as",
+  "at",
+  "be",
+  "by",
+  "for",
+  "from",
+  "has",
+  "he",
+  "in",
+  "is",
+  "it",
+  "its",
+  "of",
+  "on",
+  "that",
+  "the",
+  "to",
+  "was",
+  "will",
+  "with",
+  "this",
+  "but",
+  "they",
+  "have",
+  "had",
+  "what",
+  "when",
+  "where",
+  "who",
+  "which",
+  "why",
+  "how",
+  "all",
+  "each",
+  "every",
+  "both",
+  "few",
+  "more",
+  "most",
+  "other",
+  "some",
+  "such",
+  "or",
 ]);
 
 /**
@@ -22,7 +66,16 @@ function isLikelyNoun(word: string): boolean {
   }
 
   // Common noun endings
-  const nounEndings = ["tion", "ness", "ment", "ance", "ence", "ship", "ty", "ity"];
+  const nounEndings = [
+    "tion",
+    "ness",
+    "ment",
+    "ance",
+    "ence",
+    "ship",
+    "ty",
+    "ity",
+  ];
   return nounEndings.some((ending) => word.toLowerCase().endsWith(ending));
 }
 

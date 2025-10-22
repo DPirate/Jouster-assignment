@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2025-10-22
 
 ## Active Technologies
+- TypeScript with Deno 1.40+ + Oak (web framework), @db/sqlite@0.11 (database), @std/dotenv (config) (002-topic-search)
+- SQLite with JSON column for metadata.topics array (002-topic-search)
 
 - TypeScript with Deno 1.40+ (001-analyze-endpoint)
 
@@ -22,6 +24,7 @@ npm test && npm run lint
 TypeScript with Deno 1.40+: Follow standard conventions
 
 ## Recent Changes
+- 002-topic-search: Added TypeScript with Deno 1.40+ + Oak (web framework), @db/sqlite@0.11 (database), @std/dotenv (config)
 
 - 001-analyze-endpoint: Added TypeScript with Deno 1.40+
 
