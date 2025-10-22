@@ -1,0 +1,245 @@
+openapi: 3.0.3
+info:
+  title: Topic Search API
+  description: Search previously analyzed texts by topic with case-insensitive substring matching
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  /search:
+    get:
+      summary: Search analyses by topic
+      description: |
+        Retrieves previously analyzed texts filtered by topic. Performs case-insensitive
+        substring matching on the topics array in metadata (e.g., "tech" matches "Technology",
+        "Fintech", "Biotech"). Results are returned in chronological order (newest first).
+      operationId: searchAnalyses
+      tags:
+        - Search
+      parameters:
+        - name: topic
+          in: query
+          required: true
+          description: |
+            Search term to match against topics array. Case-insensitive substring matching
+            is applied (e.g., "tech" matches "Technology", "Fintech", "Biotech").
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+            example: technology
+        - name: limit
+          in: query
+          required: false
+          description: |
+            Maximum number of results to return. If omitted, all matching results are returned.
+            Must be a positive integer.
+          schema:
+            type: integer
+            minimum: 1
+            example: 10
+      responses:
+        '200':
+          description: Successful search operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Analysis'
+              examples:
+                withResults:
+                  summary: Search with results
+                  value:
+                    - id: "123e4567-e89b-12d3-a456-426614174000"
+                      text: "Artificial intelligence is transforming the way we live and work..."
+                      summary: "AI is revolutionizing industries through automation and data analysis."
+                      metadata:
+                        title: null
+                        topics:
+                          - "Technology"
+                          - "Artificial Intelligence"
+                          - "Innovation"
+                        sentiment: "positive"
+                        keywords:
+                          - "AI"
+                          - "transformation"
+                          - "automation"
+                      createdAt: "2025-10-23T15:30:00.000Z"
+                    - id: "987e6543-e21b-98c7-d654-321456789abc"
+                      text: "Fintech companies are leveraging technology to disrupt banking..."
+                      summary: "Financial technology sector is experiencing rapid growth and innovation."
+                      metadata:
+                        title: "Fintech Revolution"
+                        topics:
+                          - "Finance"
+                          - "Technology"
+                          - "Banking"
+                        sentiment: "positive"
+                        keywords:
+                          - "fintech"
+                          - "technology"
+                          - "banking"
+                      createdAt: "2025-10-23T14:20:00.000Z"
+                emptyResults:
+                  summary: No matching results
+                  value: []
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingTopic:
+                  summary: Missing topic parameter
+                  value:
+                    error: "Topic parameter is required"
+                    details:
+                      parameter: "topic"
+                      received: null
+                emptyTopic:
+                  summary: Empty topic parameter
+                  value:
+                    error: "Topic parameter cannot be empty"
+                    details:
+                      parameter: "topic"
+                      received: ""
+                invalidLimit:
+                  summary: Invalid limit parameter
+                  value:
+                    error: "Limit parameter must be a positive integer"
+                    details:
+                      parameter: "limit"
+                      received: "0"
+        '413':
+          description: Topic parameter too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                topicTooLong:
+                  summary: Topic exceeds 100 characters
+                  value:
+                    error: "Topic parameter must be 100 characters or less"
+                    details:
+                      parameter: "topic"
+                      length: 150
+                      maxLength: 100
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                databaseError:
+                  summary: Database error
+                  value:
+                    error: "Failed to execute search query"
+                    details:
+                      message: "Database connection failed"
+
+components:
+  schemas:
+    Analysis:
+      type: object
+      required:
+        - id
+        - text
+        - summary
+        - metadata
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the analysis (UUID v4)
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        text:
+          type: string
+          description: Original input text that was analyzed
+          minLength: 1
+          maxLength: 50000
+          example: "Artificial intelligence is transforming the way we live and work. Machine learning algorithms can now process vast amounts of data to identify patterns and make predictions."
+        summary:
+          type: string
+          description: LLM-generated summary of the text
+          example: "AI and machine learning are revolutionizing industries through data analysis and prediction capabilities."
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the analysis was created
+          example: "2025-10-23T15:30:00.000Z"
+
+    Metadata:
+      type: object
+      required:
+        - title
+        - topics
+        - sentiment
+        - keywords
+      properties:
+        title:
+          type: string
+          nullable: true
+          description: Extracted or inferred title of the text
+          example: "The Future of AI"
+        topics:
+          type: array
+          items:
+            type: string
+          description: List of topics extracted from the text by LLM
+          minItems: 0
+          example:
+            - "Technology"
+            - "Artificial Intelligence"
+            - "Innovation"
+        sentiment:
+          type: string
+          enum:
+            - positive
+            - neutral
+            - negative
+          description: Overall sentiment of the text
+          example: "positive"
+        keywords:
+          type: array
+          items:
+            type: string
+          description: Custom extracted keywords (non-LLM, frequency-based)
+          minItems: 0
+          maxItems: 3
+          example:
+            - "AI"
+            - "machine"
+            - "learning"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Topic parameter is required"
+        details:
+          type: object
+          description: Additional error details (optional)
+          additionalProperties: true
+          example:
+            parameter: "topic"
+            received: null
+
+tags:
+  - name: Search
+    description: Search operations for analyzing previously analyzed texts
